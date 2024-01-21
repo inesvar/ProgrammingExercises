@@ -9,7 +9,7 @@ using namespace std;
 
 const int LARG = 15999;
 const int HAUT = 8999;
-const unsigned MCT_DEPTH = 0;
+const unsigned MCT_DEPTH = 2;
 
 unsigned fibonacci(unsigned n) {
     if (n <= 1)  {
@@ -32,6 +32,33 @@ unsigned compute_score(unsigned kills, unsigned human_count) {
     score *= fibonacciSum(kills);
     cerr << "score " << score << "\n";
     return score;
+}
+
+void print(pair<int, int> p, bool end_of_line = true) {
+    cerr << "x : " << p.first << " y : " << p.second;
+    if (end_of_line) {
+        cerr << "\n";
+    }
+}
+
+void print(vector<pair<int, int>> &v) {
+    cerr << "[ ";
+    for (auto i = v.begin(); i != v.end(); i++) {
+        cerr << "(";
+        print(*i, false);
+        cerr << "), ";
+    }
+    cerr << " ]\n";
+}
+
+void print(list<pair<int, int>> &v) {
+    cerr << "[ ";
+    for (auto i = v.begin(); i != v.end(); i++) {
+        cerr << "(";
+        print(*i, false);
+        cerr << ")";
+    }
+    cerr << " ]\n";
 }
 
 class Playground {
@@ -77,17 +104,25 @@ class Playground {
     }
 
     void compute_possible_moves() {
-        next_moves.emplace_back(min(LARG, pos.first + 1000), pos.second);
-        next_moves.emplace_back(pos.first, max(0, pos.second - 1000));
-        next_moves.emplace_back(max(0, pos.first - 1000), pos.second);
-        next_moves.emplace_back(pos.first, min(HAUT, pos.second + 1000));
+        if (pos.first + 1000 <= LARG) {
+            next_moves.emplace_back(min(LARG, pos.first + 1000), pos.second);
+        }
+        if (pos.second - 1000 >= 0) {
+            next_moves.emplace_back(pos.first, max(0, pos.second - 1000));
+        }
+        if (pos.first - 1000 >= 0) {
+            next_moves.emplace_back(max(0, pos.first - 1000), pos.second);
+        }
+        if (pos.second + 1000 <= HAUT) {
+            next_moves.emplace_back(pos.first, min(HAUT, pos.second + 1000));
+        }
     }
 
     pair<unsigned, unsigned> compute_most_rewarding_move(unsigned depth) {
         compute_possible_moves();
-        Playground *next_pg = new Playground();
-        for (int i = 0; i < 4; i++) {
-            cerr << "depth " << depth << " move " << i << "\n";
+        for (int i = 0; i < next_moves.size(); i++) {
+            Playground *next_pg = new Playground();
+            cerr << "\ndepth " << depth << " move " << i << "\n";
             
             next_pg->pos = next_moves[i];
             cerr << "pos " << next_pg->pos.first << " " << next_pg->pos.second << "\n";
@@ -95,7 +130,7 @@ class Playground {
             score.push_back(compute_score(next_pg->attack_zombies(zombie_pos),
                                           human_count));
 
-            next_pg[i].zombies_eat(human_pos);
+            next_pg->zombies_eat(human_pos);
 
             if (depth > 0) {
                 score[i] += next_pg->compute_most_rewarding_move(depth - 1).second;
@@ -111,25 +146,19 @@ class Playground {
             if (pow(z->first - pos.first, 2) +
                 pow(z->second - pos.second, 2) >= 4000000) {
                     zombie_pos.emplace_back(z->first, z->second);
-                    cerr << "zombie alive at " << z->first << " " << z->second << "\n";
             } else {
                 zombies_killed += 1;
-                cerr << "zombies killed at " << z->first << " " << z->second << "\n";
             }
         }
-        cerr << "zombies killed " << zombies_killed << "\n";
+        cerr << "zombies killed " << zombies_killed << "\tList of zombies : ";
+        print(zombie_pos);
         return zombies_killed;
     }
 
     void zombies_eat(list<pair<int, int>> &old_human_pos) {
-        cerr << "zombies eat" << "\n";
-        // FIXME : this doesn't work as expected
-        cerr << "zombie at " << zombie_pos.begin() << " " << zombie_pos.end() << "\n";
         for (auto z = zombie_pos.begin(); z != zombie_pos.end(); z++) {
             for (auto h = old_human_pos.begin(); h != old_human_pos.end();) {
                 if (z->first == h->first && z->second == h->second) {
-                    cerr << "human eaten at " << h->first << " " << h->second << "\n"; 
-                    cerr << "human eaten at " << z->first << " " << z->second << "\n"; 
                     h = old_human_pos.erase(h);
                 } else {
                     h++;
@@ -140,7 +169,8 @@ class Playground {
             human_pos.emplace_back(h->first, h->second);
             human_count += 1;
         }
-        cerr << "human count " << human_count << "\n"; 
+        cerr << "List of humans : ";
+        print(human_pos); 
     }
 
     pair<unsigned, unsigned> get_max_score() const {
