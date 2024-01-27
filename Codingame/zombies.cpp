@@ -9,7 +9,7 @@ using namespace std;
 
 const int LARG = 15999;
 const int HAUT = 8999;
-const unsigned MCT_DEPTH = 2;
+const unsigned MCT_DEPTH = 5;
 const int SPEED = 1000;
 const int GUN_RANGE_SQUARED = 4000000;
 const int ZOMBIE_SPEED = 400;
@@ -31,10 +31,11 @@ unsigned fibonacciSum(unsigned n) {
     }
 }
 
-int compute_score(unsigned kills, unsigned human_count) {
+int compute_score(unsigned kills, unsigned human_count, bool print = false) {
     int score = 10 * pow(human_count, 2);
     score *= fibonacciSum(kills);
-    cerr << "score after killing zombies" << score << " ";
+    if (print)
+        cerr << "score after killing zombies" << score << "\n";
     return score;
 }
 
@@ -85,6 +86,7 @@ class Playground {
         human_pos.clear();
         zombie_pos.clear();
         next_moves.clear();
+        score.clear();
     }
 
     void move() {
@@ -134,28 +136,33 @@ class Playground {
     pair<unsigned, float> compute_most_rewarding_move(unsigned depth) {
         compute_possible_moves();
         for (unsigned i = 0; i < next_moves.size(); i++) {
-            Playground *next_pg = new Playground();
+            Playground next_pg;
             cerr << "\ndepth " << depth << " move " << i;
             
-            next_pg->pos = next_moves[i];
-            cerr << " (pos " << next_pg->pos.first << " " << next_pg->pos.second << ") ";
+            next_pg.pos = next_moves[i];
+            cerr << " (pos " << next_pg.pos.first << " " << next_pg.pos.second << ") ";
 
-            score.push_back(compute_score(next_pg->attack_zombies(zombie_pos),
-                                          human_count));
+            score.push_back(compute_score(next_pg.attack_zombies(zombie_pos),
+                                          human_count, depth==5));
 
-            if (!next_pg->zombies_eat(human_pos)) {
+            if (!next_pg.zombies_eat(human_pos)) {
                 score[i] = GAMEOVER;
                 continue;
-            } else if (!next_pg->zombie_count) {
-                cerr << "\nscore " << i << " at depth " << depth << " : " << score[i];
+            } else if (!next_pg.zombie_count) {
+                if (depth > 3)
+                    cerr << "\nscore " << i << " at depth " << depth << " : " << score[i];
                 continue;
             }
 
-            next_pg->move_zombies();
+            next_pg.move_zombies();
 
             if (depth > 0) {
-                score[i] += (float)(next_pg->compute_most_rewarding_move(depth - 1).second) * 2 / 3;
-                cerr << "\nscore " << i << " at depth " << depth << " : " << score[i];
+                float child_score = (float)(next_pg.compute_most_rewarding_move(depth - 1).second);
+                score[i] += child_score * 2 / 3;
+                if (depth > 3) {
+                    cerr << "\nchild score " << child_score;
+                    cerr << "score " << i << " at depth " << depth << " : " << score[i];
+                }
             }
         }
 
@@ -234,24 +241,24 @@ class Playground {
 
 int main()
 {
-    Playground *pg = new Playground();
+    Playground pg;
 
     // game loop
-    for (int _ = 0; _ < 3; _++) {
-        pg->clear();
-        cin >> pg->pos.first >> pg->pos.second; cin.ignore();
-        cin >> pg->human_count; cin.ignore();
-        for (unsigned i = 0; i < pg->human_count; i++) {
+    for (int _ = 0; _ < 2; _++) {
+        pg.clear();
+        cin >> pg.pos.first >> pg.pos.second; cin.ignore();
+        cin >> pg.human_count; cin.ignore();
+        for (unsigned i = 0; i < pg.human_count; i++) {
             int human_id;
             int human_x;
             int human_y;
             cin >> human_id >> human_x >> human_y; cin.ignore();
             cerr << "human at " << human_x << " " << human_y << "\n";
-            pg->human_pos.emplace_back(human_x, human_y);
+            pg.human_pos.emplace_back(human_x, human_y);
         }
 
-        cin >> pg->zombie_count; cin.ignore();
-        for (unsigned i = 0; i < pg->zombie_count; i++) {
+        cin >> pg.zombie_count; cin.ignore();
+        for (unsigned i = 0; i < pg.zombie_count; i++) {
             int zombie_id;
             int zombie_x;
             int zombie_y;
@@ -259,11 +266,11 @@ int main()
             int zombie_ynext;
             cin >> zombie_id >> zombie_x >> zombie_y >> zombie_xnext >> zombie_ynext; cin.ignore();
             cerr << "zombie at " << zombie_xnext << " " << zombie_ynext << "\n";
-            pg->zombie_pos.emplace_back(zombie_xnext, zombie_ynext);
+            pg.zombie_pos.emplace_back(zombie_xnext, zombie_ynext);
         }
 
-        pg->move();
+        pg.move();
 
-        cout << pg->pos.first << " " << pg->pos.second << endl; // Your destination coordinates
+        cout << pg.pos.first << " " << pg.pos.second << endl; // Your destination coordinates
     }
 }
