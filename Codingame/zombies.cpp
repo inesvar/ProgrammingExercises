@@ -79,6 +79,7 @@ class Playground {
         vector<int> score{};
         pair<int, int> pos{};
         unsigned human_count{};
+        unsigned zombie_count{};
 
     void clear() {
         human_pos.clear();
@@ -145,6 +146,8 @@ class Playground {
             if (!next_pg->zombies_eat(human_pos)) {
                 score[i] = GAMEOVER;
                 continue;
+            } else if (!next_pg->zombie_count) {
+                continue;
             }
 
             next_pg->move_zombies();
@@ -170,6 +173,7 @@ class Playground {
         }
         cerr << "Z alive after Ash attacks : ";
         print(zombie_pos, false);
+        zombie_count = old_zombie_pos.size() - zombies_killed;
         return zombies_killed;
     }
 
@@ -246,9 +250,8 @@ int main()
             pg->human_pos.emplace_back(human_x, human_y);
         }
 
-        int zombie_count;
-        cin >> zombie_count; cin.ignore();
-        for (int i = 0; i < zombie_count; i++) {
+        cin >> pg->zombie_count; cin.ignore();
+        for (unsigned i = 0; i < pg->zombie_count; i++) {
             int zombie_id;
             int zombie_x;
             int zombie_y;
