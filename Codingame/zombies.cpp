@@ -76,7 +76,7 @@ class Playground {
         list<pair<int, int>> human_pos{};
         vector<pair<int, int>> zombie_pos{};
         vector<pair<int, int>> next_moves{};
-        vector<int> score{};
+        vector<float> score{};
         pair<int, int> pos{};
         unsigned human_count{};
         unsigned zombie_count{};
@@ -131,7 +131,7 @@ class Playground {
         }
     }
 
-    pair<unsigned, unsigned> compute_most_rewarding_move(unsigned depth) {
+    pair<unsigned, float> compute_most_rewarding_move(unsigned depth) {
         compute_possible_moves();
         for (unsigned i = 0; i < next_moves.size(); i++) {
             Playground *next_pg = new Playground();
@@ -147,13 +147,14 @@ class Playground {
                 score[i] = GAMEOVER;
                 continue;
             } else if (!next_pg->zombie_count) {
+                cerr << "\nscore " << i << " at depth " << depth << " : " << score[i];
                 continue;
             }
 
             next_pg->move_zombies();
 
             if (depth > 0) {
-                score[i] += next_pg->compute_most_rewarding_move(depth - 1).second;
+                score[i] += (float)(next_pg->compute_most_rewarding_move(depth - 1).second) * 2 / 3;
                 cerr << "\nscore " << i << " at depth " << depth << " : " << score[i];
             }
         }
@@ -225,9 +226,9 @@ class Playground {
         }
     }
 
-    pair<unsigned, unsigned> get_max_score() const {
+    pair<unsigned, float> get_max_score() const {
         auto i = max_element(score.begin(), score.end());
-        return pair<int, int>(distance(score.begin(), i), *i);
+        return pair<unsigned, float>(distance(score.begin(), i), *i);
     }
 };
 
