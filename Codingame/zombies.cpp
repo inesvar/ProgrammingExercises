@@ -180,18 +180,17 @@ class Playground {
     bool zombies_eat(list<pair<int, int>> &old_human_pos) {
         cerr << "OHP";
         print(old_human_pos, false);
-        for (auto z = zombie_pos.begin(); z != zombie_pos.end(); z++) {
-            for (auto h = old_human_pos.begin(); h != old_human_pos.end();) {
+        for (auto h = old_human_pos.begin(); h != old_human_pos.end(); h++) {
+            bool still_alive = true;
+            for (auto z = zombie_pos.begin(); z != zombie_pos.end(); z++) {
                 if (z->first == h->first && z->second == h->second) {
-                    h = old_human_pos.erase(h);
-                } else {
-                    h++;
+                    still_alive = false;
                 }
             }
-        }
-        for (auto h = old_human_pos.begin(); h != old_human_pos.end(); h++) {
-            human_pos.emplace_back(h->first, h->second);
-            human_count += 1;
+            if (still_alive) {
+                human_pos.emplace_back(h->first, h->second);
+                human_count += 1;
+            }
         }
         cerr << "H alive after zombies eat : ";
         print(human_pos); 
