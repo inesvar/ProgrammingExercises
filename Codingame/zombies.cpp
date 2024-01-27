@@ -34,7 +34,7 @@ unsigned fibonacciSum(unsigned n) {
 int compute_score(unsigned kills, unsigned human_count) {
     int score = 10 * pow(human_count, 2);
     score *= fibonacciSum(kills);
-    // cerr << "score " << score << " ";
+    cerr << "score after killing zombies" << score << " ";
     return score;
 }
 
@@ -168,12 +168,14 @@ class Playground {
                 zombies_killed += 1;
             }
         }
-        cerr << "List of zombies : ";
+        cerr << "Z alive after Ash attacks : ";
         print(zombie_pos, false);
         return zombies_killed;
     }
 
     bool zombies_eat(list<pair<int, int>> &old_human_pos) {
+        cerr << "OHP";
+        print(old_human_pos, false);
         for (auto z = zombie_pos.begin(); z != zombie_pos.end(); z++) {
             for (auto h = old_human_pos.begin(); h != old_human_pos.end();) {
                 if (z->first == h->first && z->second == h->second) {
@@ -187,7 +189,7 @@ class Playground {
             human_pos.emplace_back(h->first, h->second);
             human_count += 1;
         }
-        cerr << "List of humans : ";
+        cerr << "H alive after zombies eat : ";
         print(human_pos); 
         return (human_count != 0);
     }
