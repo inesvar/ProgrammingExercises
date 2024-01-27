@@ -236,7 +236,7 @@ int main()
     Playground *pg = new Playground();
 
     // game loop
-    while (1) {
+    for (int _ = 0; _ < 3; _++) {
         pg->clear();
         cin >> pg->pos.first >> pg->pos.second; cin.ignore();
         cin >> pg->human_count; cin.ignore();
