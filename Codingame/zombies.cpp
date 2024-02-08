@@ -217,19 +217,21 @@ class Playground {
                     min_distance = distance;
                 }
             }
-            move_towards(&*z, closest_human, min_distance);
+            move_towards(&*z, closest_human, ZOMBIE_SPEED);
         }
     }
 
-    void move_towards(pair<int, int> *zombie, pair<int, int> target, int distance) {
-        pair<int, int> vector = pair<int, int>(target.first - zombie->first, target.second - zombie->second);
-        float ratio = sqrt(pow(ZOMBIE_SPEED, 2) / (float)distance);
+    /* Move `moving` towards `target` or on `target` if `speed` >= distance */
+    void move_towards(pair<int, int> *moving, pair<int, int> target, int speed) {
+        pair<int, int> vector = pair<int, int>(target.first - moving->first, target.second - moving->second);
+        float distance_squared = pow(vector.first, 2) + pow(vector.second, 2);
+        float ratio = sqrt(pow(speed, 2) / distance_squared);
         if (ratio < 1) {
-            zombie->first += (int)(vector.first * ratio);
-            zombie->second += (int)(vector.second * ratio);
+            moving->first += (int)(vector.first * ratio);
+            moving->second += (int)(vector.second * ratio);
         } else {
-            zombie->first = target.first;
-            zombie->second = target.second;
+            moving->first = target.first;
+            moving->second = target.second;
         }
     }
 
