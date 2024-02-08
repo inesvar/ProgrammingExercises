@@ -11,7 +11,7 @@ using namespace std;
 
 /*
  * TODO :
- * - make zombies also move towards Ash... the simu is wrong
+ * - compute the date of death of humans and when threatened, ensure to save on
  */
 
 const int LARG = 15999;
@@ -303,6 +303,11 @@ class Playground {
                     closest_human = *h;
                     min_distance = distance;
                 }
+            }
+            int distance = pow(z->first - pos.first, 2) + pow(z->second - pos.second, 2);
+            if (distance < min_distance) {
+                closest_human = pos;
+                min_distance = distance;
             }
             move_towards(&*z, closest_human, ZOMBIE_SPEED);
         }
