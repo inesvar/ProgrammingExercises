@@ -4,16 +4,27 @@
 #include <algorithm>
 #include <cmath>
 #include <list>
+#include <cassert>
 
 using namespace std;
+
+
+/*
+ * TODO :
+ * - make zombies also move towards Ash... the simu is wrong
+ */
 
 const int LARG = 15999;
 const int HAUT = 8999;
 const unsigned MCT_DEPTH = 5;
 const int SPEED = 1000;
+const int GUN_RANGE = 2000;
 const int GUN_RANGE_SQUARED = 4000000;
 const int ZOMBIE_SPEED = 400;
 const int GAMEOVER = -10000;
+// slightly less than the side of the inscribed square (in the gun range) 
+const int GRANULARITY_X = 2800; 
+const int GRANULARITY_Y = 2800;
 
 unsigned fibonacci(unsigned n) {
     if (n <= 1)  {
@@ -34,8 +45,9 @@ unsigned fibonacciSum(unsigned n) {
 int compute_score(unsigned kills, unsigned human_count, bool print = false) {
     int score = 10 * pow(human_count, 2);
     score *= fibonacciSum(kills);
-    if (print)
+    if (print) {
         cerr << "score after killing zombies" << score << "\n";
+    }
     return score;
 }
 
@@ -59,6 +71,18 @@ void print(vector<pair<int, int>> &v, bool end_of_line = true) {
     }
 }
 
+void print_score(const vector<float> &v, bool end_of_line = true) {
+    cerr << "[ ";
+    for (auto i = v.begin(); i != v.end(); i++) {
+        cerr << "(" << *i;
+        cerr << "), ";
+    }
+    cerr << " ]";
+    if (end_of_line) {
+        cerr << "\n";
+    }
+}
+
 void print(list<pair<int, int>> &v, bool end_of_line = true) {
     cerr << "[ ";
     for (auto i = v.begin(); i != v.end(); i++) {
@@ -72,7 +96,22 @@ void print(list<pair<int, int>> &v, bool end_of_line = true) {
     }
 }
 
+bool compare_first(const pair<int, int>& a, const pair<int, int>& b) {
+    return a.first < b.first;
+}
+
+bool compare_second(const pair<int, int>& a, const pair<int, int>& b) {
+    return a.second < b.second;
+}
+
 class Playground {
+    private:
+    /* Among all zombies and humans (that are not Ash) */
+        int min_x{};
+        int min_y{};
+        int max_x{};
+        int max_y{};
+
     public:
         list<pair<int, int>> human_pos{};
         vector<pair<int, int>> zombie_pos{};
@@ -118,19 +157,66 @@ class Playground {
         }
     }
 
+    void find_zombies_and_humans() {
+        int human_min_x = min_element(human_pos.begin(), human_pos.end(), compare_first)->first;
+        int human_min_y = min_element(human_pos.begin(), human_pos.end(), compare_second)->second;
+        int human_max_x = max_element(human_pos.begin(), human_pos.end(), compare_first)->first;
+        int human_max_y = max_element(human_pos.begin(), human_pos.end(), compare_second)->second;
+
+        int zombie_min_x = min_element(zombie_pos.begin(), zombie_pos.end(), compare_first)->first;
+        int zombie_min_y = min_element(zombie_pos.begin(), zombie_pos.end(), compare_second)->second;
+        int zombie_max_x = max_element(zombie_pos.begin(), zombie_pos.end(), compare_first)->first;
+        int zombie_max_y = max_element(zombie_pos.begin(), zombie_pos.end(), compare_second)->second;
+
+        min_x = min(human_min_x, zombie_min_x);
+        min_y = min(human_min_y, zombie_min_y);
+        max_x = max(human_max_x, zombie_max_x);
+        max_y = max(human_max_y, zombie_max_y);
+
+    }
+
     void compute_possible_moves() {
-        if (pos.first + 1000 <= LARG) {
-            next_moves.emplace_back(min(LARG, pos.first + 1000), pos.second);
+        assert(next_moves.size() == 0);
+        find_zombies_and_humans();
+        if (max_x - min_x < GRANULARITY_X) {
+            if (max_y - min_y < GRANULARITY_Y) {
+                pair<int, int> next_pos = pos;
+                move_towards(&next_pos, pair<int, int>((min_x + max_x) / 2, (min_y + max_y) / 2), SPEED);
+                next_moves.push_back(next_pos);
+            } else {
+                pair<int, int> next_pos = pos;
+                move_towards(&next_pos, pair<int, int>((min_x + max_x) / 2, min_y), SPEED);
+                next_moves.push_back(next_pos);
+                next_pos = pos;
+                move_towards(&next_pos, pair<int, int>((min_x + max_x) / 2, max_y), SPEED);
+                next_moves.push_back(next_pos);
+            }
+        } else {
+            if (max_y - min_y < GRANULARITY_Y) {
+                pair<int, int> next_pos = pos;
+                move_towards(&next_pos, pair<int, int>(min_x, (min_y + max_y) / 2), SPEED);
+                next_moves.push_back(next_pos);
+                next_pos = pos;
+                move_towards(&next_pos, pair<int, int>(max_x, (min_y + max_y) / 2), SPEED);
+                next_moves.push_back(next_pos);
+            } else {
+                pair<int, int> next_pos = pos;
+                move_towards(&next_pos, pair<int, int>(min_x, min_y), SPEED);
+                next_moves.push_back(next_pos);
+                next_pos = pos;
+                move_towards(&next_pos, pair<int, int>(min_x, max_y), SPEED);
+                next_moves.push_back(next_pos);
+                next_pos = pos;
+                move_towards(&next_pos, pair<int, int>(max_x, min_y), SPEED);
+                next_moves.push_back(next_pos);
+                next_pos = pos;
+                move_towards(&next_pos, pair<int, int>(max_x, max_y), SPEED);
+                next_moves.push_back(next_pos);
+            }
         }
-        if (pos.second - 1000 >= 0) {
-            next_moves.emplace_back(pos.first, max(0, pos.second - 1000));
-        }
-        if (pos.first - 1000 >= 0) {
-            next_moves.emplace_back(max(0, pos.first - 1000), pos.second);
-        }
-        if (pos.second + 1000 <= HAUT) {
-            next_moves.emplace_back(pos.first, min(HAUT, pos.second + 1000));
-        }
+        assert(next_moves.size() != 0);
+        cerr << "possible moves ";
+        print(next_moves);
     }
 
     pair<unsigned, float> compute_most_rewarding_move(unsigned depth) {
@@ -143,14 +229,15 @@ class Playground {
             cerr << " (pos " << next_pg.pos.first << " " << next_pg.pos.second << ") ";
 
             score.push_back(compute_score(next_pg.attack_zombies(zombie_pos),
-                                          human_count, depth==5));
+                                          human_count, depth==MCT_DEPTH));
 
             if (!next_pg.zombies_eat(human_pos)) {
                 score[i] = GAMEOVER;
                 continue;
             } else if (!next_pg.zombie_count) {
-                if (depth > 3)
+                if (depth > 3) {
                     cerr << "\nscore " << i << " at depth " << depth << " : " << score[i];
+                }
                 continue;
             }
 
@@ -246,7 +333,8 @@ int main()
     Playground pg;
 
     // game loop
-    for (int _ = 0; _ < 2; _++) {
+    for (int _ = 0; _ < 10; _++) {
+    // while (true) {
         pg.clear();
         cin >> pg.pos.first >> pg.pos.second; cin.ignore();
         cin >> pg.human_count; cin.ignore();
